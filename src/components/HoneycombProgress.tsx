@@ -1,0 +1,91 @@
+import { STAGES, type Stage } from "@/lib/stages";
+
+const STAGE_INDEX: Record<Stage, number> = {
+  opening: 0,
+  mirror: 1,
+  differentiate: 2,
+  pitch: 3,
+  discovery: 4,
+  connect: 5,
+  column_mapping: 6,
+  complete: 7,
+};
+
+export default function HoneycombProgress({ stage }: { stage: Stage }) {
+  const currentIdx = STAGE_INDEX[stage];
+  const cells = STAGES;
+
+  return (
+    <div className="flex items-center gap-1.5">
+      {cells.map((s, i) => {
+        const isComplete = i < currentIdx || stage === "complete";
+        const isCurrent = i === currentIdx && stage !== "complete";
+        const isPending = i > currentIdx;
+
+        return (
+          <div
+            key={s}
+            className="relative flex items-center justify-center transition-all duration-500"
+            title={s}
+          >
+            <svg
+              width="28"
+              height="32"
+              viewBox="0 0 28 32"
+              className={`transition-all duration-500 ${
+                isPending ? "opacity-30" : "opacity-100"
+              }`}
+            >
+              <polygon
+                points="14,1 27,8 27,24 14,31 1,24 1,8"
+                fill={isComplete ? "#F2A93B" : isCurrent ? "#28230F" : "none"}
+                stroke={isComplete ? "#F2A93B" : isCurrent ? "#F2A93B" : "#8F8570"}
+                strokeWidth="1.5"
+                className={isCurrent ? "animate-pulse-honey" : ""}
+              />
+              {isComplete && (
+                <text
+                  x="14"
+                  y="20"
+                  textAnchor="middle"
+                  fontSize="11"
+                  fontFamily="JetBrains Mono, monospace"
+                  fill="#15130E"
+                  fontWeight="600"
+                >
+                  {i + 1}
+                </text>
+              )}
+              {isCurrent && (
+                <text
+                  x="14"
+                  y="20"
+                  textAnchor="middle"
+                  fontSize="11"
+                  fontFamily="JetBrains Mono, monospace"
+                  fill="#F2A93B"
+                  fontWeight="600"
+                >
+                  {i + 1}
+                </text>
+              )}
+              {isPending && (
+                <text
+                  x="14"
+                  y="20"
+                  textAnchor="middle"
+                  fontSize="11"
+                  fontFamily="JetBrains Mono, monospace"
+                  fill="#8F8570"
+                  fontWeight="400"
+                >
+                  {i + 1}
+                </text>
+              )}
+            </svg>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
