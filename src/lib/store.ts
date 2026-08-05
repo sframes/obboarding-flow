@@ -25,7 +25,11 @@ export type FounderProfile = {
   updatedAt: string;
 };
 
-const DATA_DIR = path.join(process.cwd(), "data");
+const DATA_DIR = process.env.DATA_DIR
+  ? process.env.DATA_DIR
+  : process.env.VERCEL
+    ? path.join("/tmp", "data")
+    : path.join(process.cwd(), "data");
 const PROFILES_DIR = path.join(DATA_DIR, "profiles");
 
 async function ensureDirs() {
