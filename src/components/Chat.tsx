@@ -34,7 +34,6 @@ export default function Chat() {
   const [mappedCount, setMappedCount] = useState(0);
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
-  const hasStarted = useRef(false);
 
   const scrollToBottom = useCallback(() => {
     if (scrollRef.current) {
@@ -176,12 +175,13 @@ export default function Chat() {
     [messages, isThinking, sessionId]
   );
 
+  const hasStartedChat = messages.length > 0;
+
   useEffect(() => {
-    if (!hasStarted.current && messages.length === 0) {
-      hasStarted.current = true;
-      sendMessage("Hi, I'm ready to get started.");
+    if (!hasStartedChat) {
+      inputRef.current?.focus();
     }
-  }, [messages.length, sendMessage]);
+  }, [hasStartedChat]);
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Enter" && !e.shiftKey) {
@@ -205,6 +205,58 @@ export default function Chat() {
       return () => clearTimeout(timer);
     }
   }, [isComplete, router, sessionId]);
+
+  if (!hasStartedChat) {
+    return (
+      <div className="flex flex-col h-screen bg-bg items-center justify-center px-4">
+        <div className="w-full max-w-xl -mt-16">
+          <div className="flex items-center justify-center gap-2 mb-6">
+            <svg width="28" height="28" viewBox="0 0 32 32">
+              <polygon
+                points="16,2 29,9 29,23 16,30 3,23 3,9"
+                fill="none"
+                stroke="#F4C10F"
+                strokeWidth="2"
+              />
+              <polygon
+                points="16,8 23,12 23,20 16,24 9,20 9,12"
+                fill="#F4C10F"
+                opacity="0.6"
+              />
+            </svg>
+            <h1 className="font-serif text-2xl font-semibold text-text">
+              What are you building?
+            </h1>
+          </div>
+          <div className="flex items-end gap-2 bg-surface border border-surface-2 rounded-2xl px-4 py-3 shadow-sm">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={handleKeyDown}
+              placeholder="Tell me about your business…"
+              rows={1}
+              autoFocus
+              className="flex-1 resize-none bg-transparent text-text placeholder:text-muted/60 text-sm focus:outline-none max-h-32"
+              style={{ minHeight: "28px" }}
+            />
+            <button
+              onClick={() => sendMessage(input)}
+              disabled={!input.trim()}
+              className="flex-shrink-0 w-9 h-9 rounded-xl bg-honey text-sidebar flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-honey/90 transition-colors"
+            >
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
+                <path d="M2 12L22 2L18 12L22 22L2 12Z" fill="currentColor" />
+              </svg>
+            </button>
+          </div>
+          <p className="text-center text-xs font-mono text-muted mt-4">
+            beesz · founder onboarding
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col h-screen bg-bg">
