@@ -63,6 +63,7 @@ export const TOOL_DEFINITIONS: ToolDefinition[] = [
           currentChannel: { type: "string", description: "Primary sales channel — e.g. 'Shopify', 'Instagram', 'Amazon', 'WhatsApp'" },
           currentTools: { type: "string", description: "Current tools/CRM they use" },
           wantsToConnectData: { type: "boolean", description: "Whether they want to connect a data source" },
+          selectedCrm: { type: "string", description: "The CRM/store platform the founder selected (e.g. 'shopify', 'hubspot', 'salesforce', 'zoho', 'woocommerce', 'sheets'). Only set this after the founder explicitly names a platform." },
           recommendedAgents: {
             type: "array",
             items: { type: "string" },
@@ -151,10 +152,28 @@ export async function executeTool(
         }
       }
       const profile = await loadProfile(sessionId);
+      let autoAdvanced = false;
       if (profile) {
         await updateProfile(sessionId, updates);
+        // Auto-advance to connect stage when founder agrees to connect
+        if (updates.wantsToConnectData === true) {
+          const stageOrder = ["opening", "mirror", "differentiate", "pitch", "discovery", "connect", "column_mapping", "complete"];
+          const currentIdx = stageOrder.indexOf(profile.stage);
+          const connectIdx = stageOrder.indexOf("connect");
+          if (currentIdx < connectIdx) {
+            await updateProfile(sessionId, { stage: "connect" });
+            autoAdvanced = true;
+          }
+        }
       }
-      return JSON.stringify({ success: true, savedFields: Object.keys(updates) });
+      const result: Record<string, unknown> = { success: true, savedFields: Object.keys(updates) };
+      if (autoAdvanced) {
+        result.hint = "Stage auto-advanced to connect. A platform picker will appear in the UI automatically. Do NOT ask the founder which CRM they use — just say one short line like 'great, let's get you connected' and end your turn. Wait for them to pick a platform.";
+      }
+      if (updates.selectedCrm) {
+        result.hint = "CRM selected. You can now call advance_stage('column_mapping'). Say one short confirmation and stop — the UI will show the mapping wizard.";
+      }
+      return JSON.stringify(result);
     }
 
     case "advance_stage": {
@@ -172,6 +191,21 @@ export async function executeTool(
           error:
             "Cannot advance to complete yet. The core objective of this onboarding is not fulfilled: you have not asked (or the founder has not given a clear yes/no) whether they want to connect their CRM/store data. Ask that question directly now — do not redirect to the dashboard until it is answered.",
         });
+      }
+
+      if (stageName === "column_mapping") {
+        if (profile.wantsToConnectData !== true) {
+          return JSON.stringify({
+            error:
+              "Cannot advance to column_mapping yet. The founder has not agreed to connect their CRM/store data. Ask the connect question first.",
+          });
+        }
+        if (!profile.selectedCrm) {
+          return JSON.stringify({
+            error:
+              "Cannot advance to column_mapping yet. The founder has not selected a specific CRM/store platform yet. Wait for them to pick one from the UI picker (their message will mention a specific platform like 'Shopify', 'HubSpot', etc.) before advancing. Do NOT advance to column_mapping on your own — the UI will present the picker, and the founder's selection will arrive as a message.",
+          });
+        }
       }
 
       await updateProfile(sessionId, { stage: stageName });

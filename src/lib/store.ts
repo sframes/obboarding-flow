@@ -18,6 +18,7 @@ export type FounderProfile = {
   currentChannel: string | null;
   currentTools: string | null;
   wantsToConnectData: boolean | null;
+  selectedCrm: string | null;
   recommendedAgents: string[] | null;
   columnMappings: ColumnMapping[] | null;
   stage: Stage;
@@ -67,6 +68,7 @@ export async function createProfile(sessionId: string): Promise<FounderProfile> 
     currentChannel: null,
     currentTools: null,
     wantsToConnectData: null,
+    selectedCrm: null,
     recommendedAgents: null,
     columnMappings: null,
     stage: "opening",

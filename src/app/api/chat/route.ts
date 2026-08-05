@@ -128,6 +128,18 @@ export async function POST(req: NextRequest) {
                 )
               );
 
+              // Emit stage event in real-time if the stage changed
+              if (toolName === "advance_stage" || toolName === "save_founder_profile") {
+                const liveProfile = await loadProfile(sessionId);
+                if (liveProfile) {
+                  controller.enqueue(
+                    encoder.encode(
+                      `data: ${JSON.stringify({ type: "stage", stage: liveProfile.stage })}\n\n`
+                    )
+                  );
+                }
+              }
+
               currentMessages.push({
                 role: "tool",
                 content: result,

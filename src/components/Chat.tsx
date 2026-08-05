@@ -4,6 +4,7 @@ import { useState, useRef, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import HoneycombProgress from "./HoneycombProgress";
 import { STAGES, type Stage } from "@/lib/stages";
+import { CRM_OPTIONS, type CrmOption } from "@/lib/crmOptions";
 
 type Message = {
   id: string;
@@ -22,6 +23,15 @@ const COLUMN_MAPPING_FIELDS = [
   "product_name",
 ];
 
+const FIELD_META: Record<string, { label: string; hint: string }> = {
+  customer_name: { label: "Customer Name", hint: "Full name of the buyer" },
+  customer_contact: { label: "Customer Contact", hint: "Email or phone number" },
+  order_date: { label: "Order Date", hint: "When the order was placed" },
+  order_value: { label: "Order Value", hint: "Total order amount" },
+  order_status: { label: "Order Status", hint: "Paid, pending, fulfilled, etc." },
+  product_name: { label: "Product Name", hint: "What was purchased" },
+};
+
 export default function Chat() {
   const router = useRouter();
   const [sessionId] = useState(() => `session-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
@@ -32,6 +42,11 @@ export default function Chat() {
   const [toolActivity, setToolActivity] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [mappedCount, setMappedCount] = useState(0);
+  const [selectedCrm, setSelectedCrm] = useState<CrmOption | null>(null);
+  const [connecting, setConnecting] = useState(false);
+  const [crmConnected, setCrmConnected] = useState(false);
+  const [mappingIndex, setMappingIndex] = useState(0);
+  const [mappingValue, setMappingValue] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
 
@@ -191,10 +206,55 @@ export default function Chat() {
   };
 
   const isComplete = stage === "complete";
-  const isColumnMapping = stage === "column_mapping";
+  const showCrmPicker = stage === "connect" && !crmConnected;
+  const showMappingWizard =
+    crmConnected &&
+    mappingIndex < COLUMN_MAPPING_FIELDS.length &&
+    (stage === "connect" || stage === "column_mapping");
 
-  const handleChoice = (choice: string) => {
-    sendMessage(choice);
+  const handleCrmConnect = (crm: CrmOption) => {
+    setSelectedCrm(crm);
+    setConnecting(true);
+    setTimeout(() => {
+      setConnecting(false);
+      setCrmConnected(true);
+      sendMessage(`I want to connect ${crm.name} (${crm.id}). Let's map the columns.`);
+    }, 900);
+  };
+
+  const handleSkipConnect = () => {
+    sendMessage("Skip connecting for now, I'll do this manually.");
+  };
+
+  const currentField = COLUMN_MAPPING_FIELDS[mappingIndex];
+
+  const submitFieldMapping = (columnName: string, mode: "user-confirmed" | "auto-detected" | "unmapped") => {
+    if (!currentField) return;
+    const label = FIELD_META[currentField]?.label || currentField;
+    let text: string;
+    if (mode === "unmapped") {
+      text = `Skip mapping ${currentField} — leave it unmapped.`;
+    } else if (mode === "auto-detected") {
+      text = `Auto-detect ${currentField} — use "${columnName}" from ${selectedCrm?.name}.`;
+    } else {
+      text = `Map ${currentField} (${label}) to "${columnName}" in ${selectedCrm?.name}.`;
+    }
+    sendMessage(text);
+    setMappingIndex((i) => i + 1);
+    setMappingValue("");
+  };
+
+  const handleAutoDetect = () => {
+    if (!selectedCrm || !currentField) return;
+    const guess = selectedCrm.sampleColumns[mappingIndex] ?? currentField;
+    submitFieldMapping(guess, "auto-detected");
+  };
+
+  const handleSkipField = () => submitFieldMapping("", "unmapped");
+
+  const handleMappingNext = () => {
+    if (!mappingValue.trim()) return;
+    submitFieldMapping(mappingValue.trim(), "user-confirmed");
   };
 
   useEffect(() => {
@@ -344,31 +404,123 @@ export default function Chat() {
             </div>
           )}
 
-          {isColumnMapping && !isThinking && (
-            <div className="flex items-center gap-2 pl-2 animate-fade-in">
-              <span className="text-xs font-mono text-muted">
-                {mappedCount} of {COLUMN_MAPPING_FIELDS.length} fields mapped
-              </span>
-              <div className="flex-1 h-1 bg-surface-2 rounded-full overflow-hidden max-w-[120px]">
-                <div
-                  className="h-full bg-honey rounded-full transition-all duration-500"
-                  style={{ width: `${(mappedCount / COLUMN_MAPPING_FIELDS.length) * 100}%` }}
-                />
+          {showCrmPicker && (
+            <div className="animate-fade-in rounded-2xl border border-surface-2 bg-surface p-4">
+              <p className="text-xs font-mono text-muted mb-3">
+                Choose the CRM or store you want to connect:
+              </p>
+              <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                {CRM_OPTIONS.map((crm) => {
+                  const isThisConnecting = connecting && selectedCrm?.id === crm.id;
+                  return (
+                    <button
+                      key={crm.id}
+                      onClick={() => handleCrmConnect(crm)}
+                      disabled={connecting}
+                      className="flex flex-col items-center gap-2 rounded-xl border border-surface-2 bg-bg px-3 py-4 hover:border-honey/50 hover:bg-honey/5 transition-colors disabled:opacity-50"
+                    >
+                      <svg width="24" height="24" viewBox={crm.viewBox}>
+                        <path d={crm.path} fill={crm.color} />
+                      </svg>
+                      <span className="text-xs font-medium text-text">{crm.name}</span>
+                      <span className="text-[10px] font-mono text-honey">
+                        {isThisConnecting ? "connecting…" : "Connect"}
+                      </span>
+                    </button>
+                  );
+                })}
               </div>
+              <button
+                onClick={handleSkipConnect}
+                disabled={connecting}
+                className="mt-3 text-xs font-mono text-muted hover:text-text hover:underline disabled:opacity-50"
+              >
+                skip — I&apos;ll do this manually
+              </button>
             </div>
           )}
 
-          {isColumnMapping && !isThinking && (
-            <div className="flex flex-wrap gap-2 animate-fade-in">
-              {['Auto-detect', 'Not sure'].map((choice) => (
+          {showMappingWizard && currentField && (
+            <div className="animate-fade-in rounded-2xl border border-surface-2 bg-surface p-4">
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-1.5">
+                  <svg width="16" height="16" viewBox={selectedCrm?.viewBox}>
+                    <path d={selectedCrm?.path} fill={selectedCrm?.color} />
+                  </svg>
+                  <span className="text-[10px] font-mono text-muted">
+                    connected to {selectedCrm?.name}
+                  </span>
+                </div>
+                <span className="text-[10px] font-mono text-muted">
+                  field {mappingIndex + 1} of {COLUMN_MAPPING_FIELDS.length}
+                </span>
+              </div>
+
+              <div className="h-1 bg-surface-2 rounded-full overflow-hidden mb-4">
+                <div
+                  className="h-full bg-honey rounded-full transition-all duration-500"
+                  style={{ width: `${(mappingIndex / COLUMN_MAPPING_FIELDS.length) * 100}%` }}
+                />
+              </div>
+
+              <p className="text-sm text-text mb-1">
+                <code className="text-xs font-mono text-deep-honey bg-honey/10 px-1.5 py-0.5 rounded">
+                  {currentField}
+                </code>{" "}
+                — {FIELD_META[currentField]?.label}
+              </p>
+              <p className="text-xs text-muted mb-3">{FIELD_META[currentField]?.hint}</p>
+
+              <div className="flex flex-wrap gap-1.5 mb-3">
+                {(selectedCrm?.sampleColumns ?? []).map((col: string) => (
+                  <button
+                    key={col}
+                    onClick={() => submitFieldMapping(col, "user-confirmed")}
+                    className="px-2.5 py-1 rounded-full text-xs font-mono bg-bg border border-surface-2 text-text hover:border-honey/50 hover:bg-honey/5 transition-colors"
+                  >
+                    {col}
+                  </button>
+                ))}
+              </div>
+
+              <div className="flex items-center gap-2">
+                <input
+                  value={mappingValue}
+                  onChange={(e) => setMappingValue(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleMappingNext();
+                    }
+                  }}
+                  disabled={isThinking}
+                  placeholder="type the matching column name…"
+                  className="flex-1 bg-bg border border-surface-2 rounded-lg px-3 py-2 text-sm text-text placeholder:text-muted/60 focus:outline-none focus:border-honey/50 transition-colors disabled:opacity-50"
+                />
                 <button
-                  key={choice}
-                  onClick={() => handleChoice(choice)}
-                  className="px-3 py-1.5 rounded-full text-xs font-mono bg-surface border border-honey/40 text-deep-honey hover:bg-honey/10 hover:border-honey transition-colors"
+                  onClick={handleMappingNext}
+                  disabled={!mappingValue.trim() || isThinking}
+                  className="px-4 py-2 rounded-lg text-xs font-mono font-semibold bg-honey text-sidebar disabled:opacity-30 disabled:cursor-not-allowed hover:bg-honey/90 transition-colors"
                 >
-                  {choice}
+                  Next →
                 </button>
-              ))}
+              </div>
+              <div className="flex items-center gap-3 mt-2">
+                <button
+                  onClick={handleAutoDetect}
+                  disabled={isThinking}
+                  className="text-xs font-mono text-deep-honey hover:underline disabled:opacity-50"
+                >
+                  auto-detect
+                </button>
+                <button
+                  onClick={handleSkipField}
+                  disabled={isThinking}
+                  className="text-xs font-mono text-muted hover:text-text hover:underline disabled:opacity-50"
+                >
+                  skip this field
+                </button>
+              </div>
             </div>
           )}
 
