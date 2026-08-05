@@ -163,9 +163,18 @@ export async function executeTool(
         return JSON.stringify({ error: `Invalid stage: ${stageName}` });
       }
       const profile = await loadProfile(sessionId);
-      if (profile) {
-        await updateProfile(sessionId, { stage: stageName });
+      if (!profile) {
+        return JSON.stringify({ error: "Profile not found" });
       }
+
+      if (stageName === "complete" && profile.wantsToConnectData === null) {
+        return JSON.stringify({
+          error:
+            "Cannot advance to complete yet. The core objective of this onboarding is not fulfilled: you have not asked (or the founder has not given a clear yes/no) whether they want to connect their CRM/store data. Ask that question directly now — do not redirect to the dashboard until it is answered.",
+        });
+      }
+
+      await updateProfile(sessionId, { stage: stageName });
       return JSON.stringify({ success: true, stage: stageName });
     }
 
