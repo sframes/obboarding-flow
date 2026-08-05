@@ -24,10 +24,48 @@ export async function POST(req: NextRequest) {
       profile = await createProfile(sessionId);
     }
 
+    const userTurns = messages.filter((m) => m.role === "user").length;
+
+    if (profile.stage === "complete") {
+      const encoder = new TextEncoder();
+      const stream = new ReadableStream({
+        start(controller) {
+          controller.enqueue(
+            encoder.encode(
+              `data: ${JSON.stringify({
+                type: "content",
+                content: "You're all set — heading to your dashboard now.",
+              })}\n\n`
+            )
+          );
+          controller.enqueue(
+            encoder.encode(`data: ${JSON.stringify({ type: "stage", stage: "complete" })}\n\n`)
+          );
+          controller.enqueue(encoder.encode("data: [DONE]\n\n"));
+          controller.close();
+        },
+      });
+      return new Response(stream, {
+        headers: {
+          "Content-Type": "text/event-stream",
+          "Cache-Control": "no-cache",
+          Connection: "keep-alive",
+        },
+      });
+    }
+
     const allMessages: ChatMessage[] = [
       { role: "system", content: SYSTEM_PROMPT },
       ...messages,
     ];
+
+    if (userTurns >= 10) {
+      allMessages.push({
+        role: "system",
+        content:
+          "Turn budget notice: this onboarding has gone on long enough. Wrap up NOW — one short closing line, then call advance_stage(\"complete\"). Do not ask anything else.",
+      });
+    }
 
     const encoder = new TextEncoder();
     const stream = new ReadableStream({

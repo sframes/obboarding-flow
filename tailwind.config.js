@@ -6,14 +6,16 @@ module.exports = {
   theme: {
     extend: {
       colors: {
-        bg: "#15130E",
-        surface: "#1E1A13",
-        "surface-2": "#28230F",
-        honey: "#F2A93B",
-        "deep-honey": "#C97D1F",
-        text: "#F3EDE1",
-        muted: "#8F8570",
-        growth: "#6FCF97",
+        bg: "#F5F4F1",
+        surface: "#FFFFFF",
+        "surface-2": "#EAE7E0",
+        honey: "#F4C10F",
+        "deep-honey": "#C99500",
+        text: "#111111",
+        muted: "#8A8A8A",
+        growth: "#22C55E",
+        sidebar: "#0B0B0B",
+        "sidebar-2": "#1C1C1C",
       },
       fontFamily: {
         serif: ["Fraunces", "Georgia", "serif"],

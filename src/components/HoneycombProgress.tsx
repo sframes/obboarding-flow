@@ -33,13 +33,13 @@ export default function HoneycombProgress({ stage }: { stage: Stage }) {
               height="32"
               viewBox="0 0 28 32"
               className={`transition-all duration-500 ${
-                isPending ? "opacity-30" : "opacity-100"
+                isPending ? "opacity-40" : "opacity-100"
               }`}
             >
               <polygon
                 points="14,1 27,8 27,24 14,31 1,24 1,8"
-                fill={isComplete ? "#F2A93B" : isCurrent ? "#28230F" : "none"}
-                stroke={isComplete ? "#F2A93B" : isCurrent ? "#F2A93B" : "#8F8570"}
+                fill={isComplete ? "#F4C10F" : isCurrent ? "#FEF6D8" : "none"}
+                stroke={isComplete ? "#F4C10F" : isCurrent ? "#F4C10F" : "#D8D5CE"}
                 strokeWidth="1.5"
                 className={isCurrent ? "animate-pulse-honey" : ""}
               />
@@ -50,7 +50,7 @@ export default function HoneycombProgress({ stage }: { stage: Stage }) {
                   textAnchor="middle"
                   fontSize="11"
                   fontFamily="JetBrains Mono, monospace"
-                  fill="#15130E"
+                  fill="#111111"
                   fontWeight="600"
                 >
                   {i + 1}
@@ -63,7 +63,7 @@ export default function HoneycombProgress({ stage }: { stage: Stage }) {
                   textAnchor="middle"
                   fontSize="11"
                   fontFamily="JetBrains Mono, monospace"
-                  fill="#F2A93B"
+                  fill="#B98600"
                   fontWeight="600"
                 >
                   {i + 1}
@@ -76,7 +76,7 @@ export default function HoneycombProgress({ stage }: { stage: Stage }) {
                   textAnchor="middle"
                   fontSize="11"
                   fontFamily="JetBrains Mono, monospace"
-                  fill="#8F8570"
+                  fill="#9A9A9A"
                   fontWeight="400"
                 >
                   {i + 1}

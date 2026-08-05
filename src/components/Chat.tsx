@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useRef, useEffect, useCallback } from "react";
+import { useRouter } from "next/navigation";
 import HoneycombProgress from "./HoneycombProgress";
 import { STAGES, type Stage } from "@/lib/stages";
 
@@ -22,6 +23,7 @@ const COLUMN_MAPPING_FIELDS = [
 ];
 
 export default function Chat() {
+  const router = useRouter();
   const [sessionId] = useState(() => `session-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
@@ -195,10 +197,19 @@ export default function Chat() {
     sendMessage(choice);
   };
 
+  useEffect(() => {
+    if (isComplete) {
+      const timer = setTimeout(() => {
+        router.push(`/dashboard?sessionId=${sessionId}`);
+      }, 2200);
+      return () => clearTimeout(timer);
+    }
+  }, [isComplete, router, sessionId]);
+
   return (
     <div className="flex flex-col h-screen bg-bg">
       {/* Header */}
-      <header className="flex-shrink-0 border-b border-surface-2/50 bg-surface/50 backdrop-blur-sm">
+      <header className="flex-shrink-0 bg-sidebar">
         <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between gap-4">
           <div className="flex items-center gap-2.5">
             <div className="w-8 h-8 flex items-center justify-center">
@@ -206,21 +217,21 @@ export default function Chat() {
                 <polygon
                   points="16,2 29,9 29,23 16,30 3,23 3,9"
                   fill="none"
-                  stroke="#F2A93B"
+                  stroke="#F4C10F"
                   strokeWidth="2"
                 />
                 <polygon
                   points="16,8 23,12 23,20 16,24 9,20 9,12"
-                  fill="#F2A93B"
-                  opacity="0.3"
+                  fill="#F4C10F"
+                  opacity="0.5"
                 />
               </svg>
             </div>
             <div>
-              <h1 className="font-serif text-lg font-semibold text-text leading-none">
-                Beesz
+              <h1 className="font-serif text-lg font-semibold text-white leading-none">
+                beesz
               </h1>
-              <p className="text-[10px] font-mono text-muted mt-0.5">Founder Onboarding</p>
+              <p className="text-[10px] font-mono text-white/50 mt-0.5">Founder Onboarding</p>
             </div>
           </div>
           <HoneycombProgress stage={stage} />
@@ -301,7 +312,7 @@ export default function Chat() {
                 <button
                   key={choice}
                   onClick={() => handleChoice(choice)}
-                  className="px-3 py-1.5 rounded-full text-xs font-mono bg-surface border border-honey/30 text-honey/80 hover:bg-honey/10 hover:border-honey/50 transition-colors"
+                  className="px-3 py-1.5 rounded-full text-xs font-mono bg-surface border border-honey/40 text-deep-honey hover:bg-honey/10 hover:border-honey transition-colors"
                 >
                   {choice}
                 </button>
@@ -310,14 +321,28 @@ export default function Chat() {
           )}
 
           {isComplete && (
-            <div className="pt-4 animate-fade-in">
+            <div className="pt-4 animate-fade-in flex flex-col items-start gap-2">
+              <div className="flex items-center gap-2">
+                <div className="flex gap-1">
+                  {[0, 1, 2].map((i) => (
+                    <div
+                      key={i}
+                      className="w-1.5 h-1.5 rounded-full bg-honey animate-pulse-honey"
+                      style={{ animationDelay: `${i * 0.2}s` }}
+                    />
+                  ))}
+                </div>
+                <span className="text-xs font-mono text-muted">
+                  Setting up your dashboard…
+                </span>
+              </div>
               <a
                 href={`/debug/profile/${sessionId}`}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-2 text-sm font-mono text-growth hover:underline"
+                className="text-xs font-mono text-muted hover:text-text hover:underline"
               >
-                → View captured profile
+                view captured profile (debug)
               </a>
             </div>
           )}
@@ -342,7 +367,7 @@ export default function Chat() {
             <button
               onClick={() => sendMessage(input)}
               disabled={!input.trim() || isThinking || isComplete}
-              className="flex-shrink-0 w-11 h-11 rounded-xl bg-honey text-bg flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-honey/90 transition-colors"
+              className="flex-shrink-0 w-11 h-11 rounded-xl bg-honey text-sidebar flex items-center justify-center disabled:opacity-30 disabled:cursor-not-allowed hover:bg-honey/90 transition-colors"
             >
               <svg width="18" height="18" viewBox="0 0 24 24" fill="none">
                 <path
@@ -370,8 +395,8 @@ function MessageBubble({ message }: { message: Message }) {
               <svg width="16" height="16" viewBox="0 0 16 16">
                 <polygon
                   points="8,1 14,4.5 14,11.5 8,15 2,11.5 2,4.5"
-                  fill="#F2A93B"
-                  opacity="0.4"
+                  fill="#F4C10F"
+                  opacity="0.7"
                 />
               </svg>
             </div>
